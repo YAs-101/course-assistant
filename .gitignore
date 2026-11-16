@@ -1,0 +1,26 @@
+# 忽略运行态与个人数据
+
+# 依赖
+node_modules/
+
+# 个人笔记与知识库：不进仓库
+课程知识地图/
+*.docx
+*.doc
+
+# 应用运行态
+app/config.json
+app/.runtime/
+
+# 临时文件与调试产物
+_live*.*
+_*.out
+_*.err
+_*.log
+_*.json.tmp
+_tmp_*
+
+# 系统垃圾
+.DS_Store
+Thumbs.db
+desktop.ini

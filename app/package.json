@@ -1,0 +1,26 @@
+{
+  "name": "course-assistant-app",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "课程助手独立前端：不需要启动 DeepSeek Harness 也能观察前台轮询、调间隔、实时看知识总结。",
+  "main": "main.mjs",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node main.mjs --open",
+    "serve": "node main.mjs",
+    "test": "node --test \"test/*.test.js\"",
+    "shortcut": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/make-shortcut.ps1"
+  },
+  "files": [
+    "main.mjs",
+    "server.mjs",
+    "lib",
+    "public",
+    "scripts",
+    "vendor",
+    "README.md"
+  ]
+}

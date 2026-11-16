@@ -1,0 +1,23 @@
+{
+  "name": "dsh-course-bridge",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js"
+  },
+  "description": "Watches dsh-video-coursemap state and delivers a per-video Word note into a fresh DSH session.",
+  "files": [
+    "index.js",
+    "lib",
+    "scripts",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test \"test/*.test.js\""
+  }
+}

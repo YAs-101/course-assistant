@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>课程助手 · 实时轮询与知识总结</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>📚</text></svg>">
+<link rel="stylesheet" href="/app.css">
+</head>
+<body>
+<div class="shell">
+
+  <header class="bar">
+    <div class="brand">
+      <span class="logo" aria-hidden="true">📚</span>
+      <div class="brand-text">
+        <h1>课程助手</h1>
+        <p id="brand-sub">正在连接…</p>
+      </div>
+    </div>
+
+    <div class="bar-controls">
+      <div class="switch-wrap" title="启动或停止前台轮询">
+        <button id="power" class="power" role="switch" aria-checked="false" aria-label="轮询开关">
+          <span class="power-dot"></span>
+          <span class="power-text">未启动</span>
+        </button>
+      </div>
+
+      <div class="interval-wrap">
+        <label for="interval">轮询间隔</label>
+        <div class="interval-input">
+          <input id="interval" type="number" min="2000" max="120000" step="500" value="10000">
+          <span>ms</span>
+        </div>
+        <div class="interval-presets">
+          <button data-ms="3000">3s</button>
+          <button data-ms="5000">5s</button>
+          <button data-ms="10000">10s</button>
+          <button data-ms="30000">30s</button>
+        </div>
+      </div>
+
+      <button id="probe" class="ghost" title="立即探测一次前台窗口并计时">探测一次</button>
+      <button id="settings-btn" class="ghost" title="更多设置">设置</button>
+    </div>
+  </header>
+
+  <div id="pulse" class="pulse" aria-live="polite">
+    <span id="pulse-dot" class="pulse-dot"></span>
+    <span id="pulse-text">等待首次状态…</span>
+    <span id="pulse-meta" class="pulse-meta"></span>
+  </div>
+
+  <main class="panes">
+
+    <!-- ───────────────────────── 左：实时轮询 ───────────────────────── -->
+    <section class="pane pane-poll" aria-labelledby="poll-title">
+      <div class="pane-head">
+        <h2 id="poll-title">实时轮询</h2>
+        <div class="pane-head-right">
+          <span id="poll-cadence" class="tag">—</span>
+          <button id="scan-current" class="ghost small" title="把当前前台标题直接送去总结">总结当前</button>
+        </div>
+      </div>
+
+      <div class="now-card">
+        <div class="now-label">当前前台窗口</div>
+        <div id="now-title" class="now-title">—</div>
+        <div class="now-meta">
+          <span id="now-proc" class="tag">进程 —</span>
+          <span id="now-state" class="tag">—</span>
+          <span id="now-age" class="tag">—</span>
+        </div>
+      </div>
+
+      <div class="candidate" id="candidate" hidden>
+        <div class="candidate-head">
+          <strong>已识别的候选课程</strong>
+          <button id="scan-candidate" class="primary small">总结这一条</button>
+        </div>
+        <div id="candidate-title" class="candidate-title"></div>
+        <div id="candidate-meta" class="candidate-meta"></div>
+      </div>
+
+      <div class="feed-head">
+        <div class="chips" id="log-filter" role="tablist" aria-label="日志筛选">
+          <button class="chip active" data-kind="all">全部</button>
+          <button class="chip" data-kind="browser">候选</button>
+          <button class="chip" data-kind="classify">分类</button>
+          <button class="chip" data-kind="bili">素材</button>
+          <button class="chip" data-kind="error">错误</button>
+          <button class="chip" data-kind="fg">前台</button>
+        </div>
+        <label class="mini-toggle"><input id="auto-scroll" type="checkbox" checked> 跟随</label>
+      </div>
+
+      <ol id="feed" class="feed" aria-live="polite" aria-relevant="additions"></ol>
+
+      <div class="manual-scan">
+        <input id="manual-title" type="text" placeholder="也可以粘贴一个视频标题，直接总结…" autocomplete="off">
+        <button id="manual-go" class="primary">开始总结</button>
+      </div>
+      <div id="scan-status" class="scan-status" hidden></div>
+    </section>
+
+    <!-- ───────────────────────── 右：知识总结 ───────────────────────── -->
+    <section class="pane pane-know" aria-labelledby="know-title">
+      <div class="pane-head">
+        <h2 id="know-title">知识总结</h2>
+        <div class="pane-head-right">
+          <span id="know-stats" class="tag">—</span>
+          <button id="reload-know" class="ghost small" title="重新读取知识地图">刷新</button>
+        </div>
+      </div>
+
+      <div class="know-grid">
+        <nav class="subjects" id="subjects" aria-label="学科与视频"></nav>
+
+        <article class="note" id="note">
+          <div class="note-empty" id="note-empty">
+            <p class="big">选一个视频看笔记</p>
+            <p class="dim">左边是轮询，右边是它刚总结出来的知识。选中学科后点击视频标题即可展开。</p>
+          </div>
+          <div id="note-body" hidden>
+            <div class="note-head">
+              <div>
+                <h3 id="note-title"></h3>
+                <p id="note-meta" class="dim"></p>
+              </div>
+              <div class="note-actions">
+                <button id="note-raw-btn" class="ghost small">原文</button>
+                <button id="note-md-btn" class="ghost small" title="下载该学科的 Markdown 手册">手册</button>
+              </div>
+            </div>
+            <div class="note-tabs" id="note-tabs">
+              <button class="tab active" data-view="outline">知识点</button>
+              <button class="tab" data-view="mind">思维导图</button>
+              <button class="tab" data-view="talk">讨论焦点</button>
+              <button class="tab" data-view="raw">Markdown</button>
+            </div>
+            <div id="note-content" class="note-content"></div>
+          </div>
+        </article>
+      </div>
+
+      <div class="files">
+        <div class="files-head">
+          <h3>生成的文档</h3>
+          <span id="files-count" class="tag">—</span>
+        </div>
+        <div id="files-list" class="files-list"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <div class="foot-left">
+      <span id="foot-env" class="dim">环境自检…</span>
+    </div>
+    <div class="foot-right">
+      <span id="bridge-state" class="tag">投递 —</span>
+      <button id="selfcheck" class="ghost small">自检</button>
+    </div>
+  </footer>
+</div>
+
+<!-- 设置抽屉 -->
+<div id="drawer" class="drawer" hidden>
+  <div class="drawer-back" data-close></div>
+  <aside class="drawer-panel" role="dialog" aria-modal="true" aria-labelledby="drawer-title">
+    <header class="drawer-head">
+      <h2 id="drawer-title">设置</h2>
+      <button class="ghost small" data-close>关闭</button>
+    </header>
+
+    <div class="drawer-body">
+      <section class="field-group">
+        <h3>轮询</h3>
+        <div class="field">
+          <label for="set-stable">稳定轮数 <span class="hint">同一标题连续命中几次才总结</span></label>
+          <input id="set-stable" type="number" min="1" max="10" step="1">
+        </div>
+        <div class="field">
+          <label for="set-minlen">标题最短长度 <span class="hint">太短的标题直接忽略</span></label>
+          <input id="set-minlen" type="number" min="1" max="80" step="1">
+        </div>
+        <div class="field row">
+          <label for="set-fetch">抓取 B 站素材 <span class="hint">简介 / 弹幕 / 评论 / 字幕</span></label>
+          <input id="set-fetch" type="checkbox">
+        </div>
+      </section>
+
+      <section class="field-group">
+        <h3>总结</h3>
+        <div class="field">
+          <label for="set-model">模型</label>
+          <select id="set-model">
+            <option value="deepseek-flash">deepseek-flash（快）</option>
+            <option value="deepseek-v4-pro">deepseek-v4-pro（强）</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="set-maxtokens">maxTokens</label>
+          <input id="set-maxtokens" type="number" min="256" max="32768" step="256">
+        </div>
+        <div class="field row">
+          <label for="set-deepsplit">知识深挖 <span class="hint">允许对单个知识点再问一次 AI</span></label>
+          <input id="set-deepsplit" type="checkbox">
+        </div>
+      </section>
+
+      <section class="field-group">
+        <h3>路径</h3>
+        <div class="field">
+          <label for="set-outdir">知识地图目录</label>
+          <input id="set-outdir" type="text" spellcheck="false">
+        </div>
+        <div class="field">
+          <label for="set-coursemap">课程插件模块 <span class="hint">留空自动探测</span></label>
+          <input id="set-coursemap" type="text" spellcheck="false" placeholder="自动探测">
+        </div>
+        <div class="field">
+          <label for="set-python">Python <span class="hint">留空自动探测</span></label>
+          <input id="set-python" type="text" spellcheck="false" placeholder="自动探测">
+        </div>
+      </section>
+
+      <section class="field-group">
+        <h3>环境</h3>
+        <div id="env-list" class="env-list"></div>
+        <div class="field-actions">
+          <button id="api-probe" class="ghost small">测试 DeepSeek 连接</button>
+          <button id="engine-restart" class="ghost small">重启引擎</button>
+        </div>
+        <div id="env-note" class="env-note" hidden></div>
+      </section>
+    </div>
+
+    <footer class="drawer-foot">
+      <span id="save-hint" class="dim"></span>
+      <button id="save" class="primary">保存并应用</button>
+    </footer>
+  </aside>
+</div>
+
+<div id="toasts" class="toasts" aria-live="polite"></div>
+
+<script type="module" src="/app.js"></script>
+</body>
+</html>
