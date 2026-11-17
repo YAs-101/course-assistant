@@ -1,0 +1,18 @@
+{
+  "name": "ms-rewards-auto",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "每天登录后自动用 Edge 把 Microsoft Rewards 的搜索积分刷满，跑完自己关掉浏览器",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --test \"test/*.test.js\"",
+    "run": "node run.mjs",
+    "preflight": "node run.mjs --preflight-only",
+    "install-task": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install-task.ps1",
+    "run-task": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install-task.ps1 -RunNow",
+    "uninstall-task": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install-task.ps1 -Uninstall"
+  }
+}
