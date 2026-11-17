@@ -186,6 +186,12 @@ app/
 
 **怎么让它脱离 DSH 跑起来**：上游插件导出的是 `apply(ctx, config)`，需要宿主提供 `ctx.llm.stream`、`ctx.tools.register`、`ctx.effect`、`ctx.get('agentDefaultModel')`。`lib/engine.mjs` 的 `createFakeContext()` 就伪造了这四样——`llm.stream` 直连 DeepSeek HTTP API，其余用内存对象顶替。于是同一份插件代码在普通 Node 进程里就能工作。
 
+## 附带小工具
+
+`tools/` 下是跟课程助手无关、但同一套风格（Node 标准库、零第三方依赖、纯函数优先测试）写的独立小工具，各自有自己的 README 和测试命令。
+
+- [`tools/rewards-auto/`](tools/rewards-auto/README.md) —— 每天登录 Windows 后自动打开 Edge 把 Microsoft Rewards 当日搜索积分刷满再关掉浏览器。靠 CDP 驱动真实 profile，窗口最小化不打扰人。需要 Node ≥22。
+
 ## 许可
 
 本项目 MIT，见 [`LICENSE`](LICENSE)。
