@@ -40,6 +40,7 @@ import {
 import { createLogger, defaultLogPath, summaryRecord } from './lib/log.mjs'
 import { describeState, isFull, readStatus, searchRemaining } from './lib/rewards.mjs'
 import { pickQueries, rngMs, searchOnce } from './lib/search.mjs'
+import { isKnownFullToday, isTrustWindowOpen, readDailyState, shouldCacheFull, writeDailyState } from './lib/state.mjs'
 
 /** Statuses that mean the run did its job; anything else exits non-zero. */
 const SUCCESS_STATUS = new Set([
@@ -231,8 +232,18 @@ export async function run({
     const visible = before.filter((proc) => proc.hasWindow).length
     log.info('preflight', { decision: preflightDecision, processCount: before.length, visible })
 
+    // A marker written by an earlier successful run today short-circuits
+    // everything below. The scheduled task repeats every 30 minutes, and
+    // without this each retry still launched a real Edge window just to read
+    // "15/15", then closed it a few seconds later -- observed at 08:51 and
+    // 09:51 on 2026-11-20. `--force` deliberately bypasses it.
+    const cached = config.useDailyState ? readDailyState(config.stateFile) : null
+
     if (args.preflightOnly) {
       setResult('ok', `preflight:${preflightDecision}`)
+    } else if (!args.force && isKnownFullToday(cached)) {
+      log.info('today already earned', { state: cached, trustWindowOpen: isTrustWindowOpen() })
+      setResult('already-full', 'state marker says today has already been earned')
     } else if (preflightDecision === 'skip-visible-window') {
       log.warn('skipping: an Edge window is visible; the scheduled task will retry')
       setResult('skipped-edge-busy', 'visible Edge window')
@@ -431,6 +442,26 @@ export async function run({
     }
   }
 
+  // 8. Remember that today is done -------------------------------------------
+  // Written only after the final status is known, so a run that failed to close
+  // Edge or ended in no-progress leaves nothing behind for tomorrow's retries
+  // to mistake for success. The counter itself is the evidence: only a reading
+  // at the maximum counts.
+  let stateWritten = null
+  if (config.useDailyState && !args.force && shouldCacheFull(status, postState)) {
+    try {
+      stateWritten = writeDailyState(config.stateFile, {
+        balance: postState?.balance ?? null,
+        progress: postState?.pcSearch?.progress ?? null,
+        max: postState?.pcSearch?.max ?? null,
+      })
+      log.info('daily marker written', { file: config.stateFile, state: stateWritten })
+    } catch (error) {
+      // Losing the marker only costs a redundant retry, never the run.
+      log.warn('could not write daily marker', { file: config.stateFile, message: error.message })
+    }
+  }
+
   const summary = summaryRecord({
     status,
     reason,
@@ -440,7 +471,10 @@ export async function run({
     postProgress: postState?.pcSearch?.progress ?? null,
     searches,
     durationMs: Date.now() - startedAt,
-    extra: preflightDecision ? { preflight: preflightDecision } : null,
+    extra: {
+      ...(preflightDecision ? { preflight: preflightDecision } : {}),
+      ...(stateWritten ? { cachedFull: true } : {}),
+    },
   })
   log.write(summary)
   log.close()

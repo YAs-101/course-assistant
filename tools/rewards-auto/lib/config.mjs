@@ -25,6 +25,11 @@ export function stateDir(env = process.env) {
   return join(base, 'ms-rewards-auto')
 }
 
+/** Marker file recording that today's search points are already earned. */
+export function defaultStatePath(env = process.env) {
+  return join(stateDir(env), 'state.json')
+}
+
 /** Default Edge User Data directory for the current machine. */
 export function defaultUserDataDir(env = process.env) {
   const base = env.LOCALAPPDATA || join(env.USERPROFILE || '.', 'AppData', 'Local')
@@ -45,6 +50,7 @@ export const DEFAULTS = Object.freeze({
   edgeExe: 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
   userDataDir: null, // resolved to defaultUserDataDir() when null
   linkDir: null, // resolved to <stateDir>/udlink when null
+  stateFile: null, // resolved to <stateDir>/state.json when null
   port: 9333,
   portRange: 11,
   windowWidth: 1280,
@@ -61,6 +67,7 @@ export const DEFAULTS = Object.freeze({
   maxRuntimeMs: 12 * 60 * 1000,
   minimize: true,
   focusEmulation: true,
+  useDailyState: true,
 })
 
 /**
@@ -89,6 +96,7 @@ export function resolveConfig(config, env = process.env) {
   const out = { ...config }
   if (!out.userDataDir) out.userDataDir = defaultUserDataDir(env)
   if (!out.linkDir) out.linkDir = join(stateDir(env), 'udlink')
+  if (!out.stateFile) out.stateFile = defaultStatePath(env)
   return out
 }
 

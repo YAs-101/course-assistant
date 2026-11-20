@@ -51,6 +51,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\install-task.ps1 -Un
 ## 判定与兜底
 
 - **已经满了**：读到 `PCSearch` 进度等于上限就不再搜索，几秒内退出（`already-full`）。
+- **当天已经赚过就不再开浏览器**：成功刷满时会往
+  `%LOCALAPPDATA%\ms-rewards-auto\state.json` 写一个当日标记。之后每 30 分钟的重试
+  看到这个标记就直接退出，**不会启动 Edge**，也就不会出现"浏览器莫名弹出又关掉"。
+  用 `--force` 可以无视标记强制跑一轮。
 - **你自己在用 Edge**：只要有一个可见窗口，本轮就跳过（`skipped-edge-busy`），
   交给 30 分钟后的下一次重试；只有全在后台跑的 Edge 进程才会被结束掉。
 - **连搜两次都不加分**：判定为后端不再给这个会话计分，停止并记 `no-progress`，
@@ -81,6 +85,14 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\install-task.ps1 -Un
 ```
 
 文件损坏或不是对象时会回落到默认值并在日志里记一条警告，不会让整次运行失败。
+
+与"当日已满标记"相关的两个键：`useDailyState`（默认 `true`，设为 `false` 就每轮都真
+去启动浏览器确认）和 `stateFile`（默认 `%LOCALAPPDATA%\ms-rewards-auto\state.json`）。
+标记只在读到满额且本轮状态正常时才写，`failed`、`no-progress`、`not-signed-in`、
+`skipped-edge-busy` 都不会写，所以坏掉的一天不会被静默跳过。
+
+标记只在**当天 00:30 之后**才会被信任。刚过午夜时微软的计数器可能还没重置，这时如果
+盲信昨天留下的 15/15，会把新的一天整天跳过，代价太大。
 时间相关（登录后延迟、重试间隔、重试总时长）改 `scripts/install-task.ps1 -Delay/-Repeat/-Duration`
 或直接改 `lib/task.mjs` 的默认值后重装任务。
 
@@ -103,7 +115,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\install-task.ps1 -Un
 
 `udlink` 是指向真实 Edge profile 的 junction。**删它只能用 `cmd /c rmdir`**，
 绝不能用 `Remove-Item -Recurse` 或 `fs.rmSync(..., {recursive:true})`——
-递归删除会顺着 junction 把真实浏览器数据一起删掉。`uninstall-task.ps1` 和
+递归删除会顺着 junction 把真实浏览器数据一起删掉。`install-task.ps1 -Uninstall` 和
 `lib/edge.mjs` 的 `removeJunction` 都会先确认目标确实是 reparse point 再动手。
 
 ## 测试
@@ -113,5 +125,5 @@ cd tools\rewards-auto
 npm test
 ```
 
-纯函数部分（响应解析、查询挑选、进程判定、配置合并、日志、任务 XML）都有测试，
+纯函数部分（响应解析、查询挑选、进程判定、配置合并、日志、任务 XML、当日标记）都有测试，
 不需要启动浏览器，也不碰真实 profile。

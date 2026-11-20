@@ -16,6 +16,7 @@ import { afterEach, beforeEach, describe, it } from 'node:test'
 import {
   DEFAULTS,
   defaultConfigPath,
+  defaultStatePath,
   defaultUserDataDir,
   loadConfig,
   mergeConfig,
@@ -83,6 +84,16 @@ describe('resolveConfig', () => {
     const resolved = resolveConfig(DEFAULTS, FAKE_ENV)
     assert.equal(resolved.userDataDir, defaultUserDataDir(FAKE_ENV))
     assert.equal(resolved.linkDir, join(stateDir(FAKE_ENV), 'udlink'))
+    assert.equal(resolved.stateFile, join(stateDir(FAKE_ENV), 'state.json'))
+  })
+
+  it('daily marker 路径与 stateDir 一致', () => {
+    assert.equal(defaultStatePath(FAKE_ENV), join(stateDir(FAKE_ENV), 'state.json'))
+  })
+
+  it('显式给的 stateFile 不被覆盖', () => {
+    const resolved = resolveConfig({ ...DEFAULTS, stateFile: 'D:\\custom\\state.json' }, FAKE_ENV)
+    assert.equal(resolved.stateFile, 'D:\\custom\\state.json')
   })
 
   it('显式配置不被覆盖', () => {
